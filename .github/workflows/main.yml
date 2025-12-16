@@ -22,5 +22,5 @@ jobs:
 
       - name: Rodar Script
         env:
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }} # Garanta que este nome bate com o Secret
         run: python main.py
