@@ -20,7 +20,6 @@ def soma_dias_uteis(data_inicial, dias):
 
 def interpretar_data(valor):
     try:
-        # Pega a última data se for um intervalo
         parte_final = str(valor).split('à')[-1].split('a')[-1].strip()
         return datetime.strptime(parte_final, "%d/%m/%Y")
     except:
@@ -28,8 +27,8 @@ def interpretar_data(valor):
 
 def rodar_verificacao():
     print("Iniciando leitura da planilha...")
-    # O .fillna('') substitui todos os campos vazios por nada, removendo o 'nan'
-    df = pd.read_csv(URL_PLANILHA).fillna('') 
+    # Lemos a planilha e preenchemos vazios com string vazia
+    df = pd.read_csv(URL_PLANILHA).fillna('')
     
     hoje = datetime.now()
     limite = soma_dias_uteis(hoje, 3)
@@ -42,12 +41,22 @@ def rodar_verificacao():
         if status in ["Em Produção", "Nova"]:
             data_linha = interpretar_data(data_texto)
             if data_linha and data_linha <= limite:
+                # Ajuste da OF: Remove .0 convertendo para int se for numérico
+                of_valor = linha.iloc[1]
+                try:
+                    if isinstance(of_valor, (float, int)) or str(of_valor).replace('.0', '').isdigit():
+                        of_limpa = str(int(float(of_valor)))
+                    else:
+                        of_limpa = str(of_valor)
+                except:
+                    of_limpa = str(of_valor)
+
                 resultados.append({
                     "data": data_linha.strftime("%d/%m/%Y"),
-                    "of": linha.iloc[1],
+                    "of": of_limpa,
                     "status": status,
                     "cliente": linha.iloc[3],
-                    "cliente_a": linha.iloc[8] # Agora virá vazio se não houver dados
+                    "cliente_a": linha.iloc[8] # Já virá vazio devido ao .fillna('')
                 })
 
     if resultados:
@@ -57,14 +66,18 @@ def rodar_verificacao():
         print("Nenhuma pendência encontrada.")
 
 def enviar_email_brevo(dados):
-    if not BREVO_API_KEY:
-        print("ERRO CRÍTICO: BREVO_API_KEY não configurada no GitHub Secrets.")
+    api_key = str(os.getenv("BREVO_API_KEY", "")).strip()
+    if not api_key:
+        print("ERRO CRÍTICO: BREVO_API_KEY não encontrada.")
         return
 
     url = "https://api.brevo.com/v3/smtp/email"
-    headers = {"api-key": str(os.getenv("BREVO_API_KEY")).strip(), "Content-Type": "application/json"}
+    headers = {
+        "api-key": api_key,
+        "Content-Type": "application/json",
+        "accept": "application/json"
+    }
     
-    # Montagem da tabela de forma mais limpa
     corpo_tabela = ""
     for d in dados:
         corpo_tabela += f"<tr><td>{d['data']}</td><td>{d['of']}</td><td>{d['status']}</td><td>{d['cliente']}</td><td>{d['cliente_a']}</td></tr>"
@@ -82,16 +95,17 @@ def enviar_email_brevo(dados):
     """
 
     payload = {
-        "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
-        "to": [{"email": "marcos@quimlab.com.br"}, {"email": "rodrigo@quimlab.com.br"}],
+        "sender": {{"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"}},
+        "to": [
+            {{"email": "marcos@quimlab.com.br"}},
+            {{"email": "quimlabcomercial@gmail.com"}}
+        ],
         "subject": "⚠️ Relatório de OFs em Atraso",
         "htmlContent": html_content
     }
 
     response = requests.post(url, headers=headers, json=payload)
     print(f"Status Brevo: {response.status_code}")
-    if response.status_code != 201:
-        print(f"Erro: {response.text}")
 
 if __name__ == "__main__":
     rodar_verificacao()
