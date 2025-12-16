@@ -57,36 +57,23 @@ def rodar_verificacao():
         print("Nenhuma pendência encontrada.")
 
 def enviar_email(dados):
-    url = "https://api.resend.com/emails"
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "api-key": os.getenv("BREVO_API_KEY"), # Mude o nome do Secret no GitHub
         "Content-Type": "application/json"
     }
     
-    linhas_tabela = "".join([
-        f"<tr><td>{d['data']}</td><td>{d['of']}</td><td>{d['status']}</td><td>{d['cliente']}</td><td>{d['cliente_a']}</td></tr>"
-        for d in dados
-    ])
-
-    html_body = f"""
-    <h3>⚠️ OFs em Atraso</h3>
-    <table border="1" style="border-collapse: collapse;">
-        <tr style="background-color: #f2f2f2;">
-            <th>Data</th><th>OF</th><th>Status</th><th>Cliente</th><th>Cliente A</th>
-        </tr>
-        {linhas_tabela}
-    </table>
-    """
+    # ... (mesmo código de montagem da tabelaHtml) ...
 
     payload = {
-        "from": "Sistema Quimlab <onboarding@resend.dev>",
-        "to": ["marcos@quimlab.com.br"],
+        "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
+        "to": [{"email": "marcos@quimlab.com.br"}, {"email": "outro@quimlab.com.br"}],
         "subject": "⚠️ Relatório de OFs em Atraso",
-        "html": html_body
+        "htmlContent": html_body
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    print(f"Status do envio: {response.status_code}, Resposta: {response.text}")
+    print(f"Status Brevo: {response.status_code}, Resposta: {response.text}")
 
 if __name__ == "__main__":
     rodar_verificacao()
