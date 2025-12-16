@@ -1,0 +1,26 @@
+name: Relatorio Diario OFs
+
+on:
+  schedule:
+    - cron: '0 11 * * 1-5' # Roda às 08:00 AM (Horário de Brasília) de Seg a Sex
+  workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar Dependencias
+        run: pip install pandas requests
+
+      - name: Rodar Script
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: python main.py
