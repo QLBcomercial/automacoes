@@ -77,11 +77,12 @@ def enviar_email_brevo(dados):
     </html>
     """
 
+    # O erro estava aqui. Agora as chaves estão corretas para um dicionário Python.
     payload = {
-        "sender": {{"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"}},
+        "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
         "to": [
-            {{"email": "marcos@quimlab.com.br"}},
-            {{"email": "quimlabcomercial@gmail.com"}} # Adicionei você para teste
+            {"email": "marcos@quimlab.com.br"},
+            {"email": "quimlabcomercial@gmail.com"}
         ],
         "subject": "⚠️ Relatório de OFs em Atraso",
         "htmlContent": html_content
