@@ -59,10 +59,7 @@ def enviar_email_brevo(dados):
         return
 
     url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "api-key": str(BREVO_API_KEY).strip(),
-        "Content-Type": "application/json"
-    }
+    headers = {"api-key": str(os.getenv("BREVO_API_KEY")).strip(), "Content-Type": "application/json"}
     
     # Montagem da tabela de forma mais limpa
     corpo_tabela = ""
