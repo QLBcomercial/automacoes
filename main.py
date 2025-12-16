@@ -80,7 +80,7 @@ def enviar_email_brevo(dados):
 
     payload = {
         "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
-        "to": [{"email": "marcos@quimlab.com.br"}, {"email": "quimlabcomercial@gmail.com"}],
+        "to": [{"email": "marcos@quimlab.com.br"}, {"email": "rodrigo@quimlab.com.br"}],
         "subject": "⚠️ Relatório de OFs em Atraso",
         "htmlContent": html_content
     }
