@@ -28,7 +28,9 @@ def interpretar_data(valor):
 
 def rodar_verificacao():
     print("Iniciando leitura da planilha...")
-    df = pd.read_csv(URL_PLANILHA)
+    # O .fillna('') substitui todos os campos vazios por nada, removendo o 'nan'
+    df = pd.read_csv(URL_PLANILHA).fillna('') 
+    
     hoje = datetime.now()
     limite = soma_dias_uteis(hoje, 3)
     resultados = []
@@ -36,6 +38,7 @@ def rodar_verificacao():
     for index, linha in df.iterrows():
         status = str(linha.iloc[2]).strip()
         data_texto = linha.iloc[0]
+        
         if status in ["Em Produção", "Nova"]:
             data_linha = interpretar_data(data_texto)
             if data_linha and data_linha <= limite:
@@ -44,7 +47,7 @@ def rodar_verificacao():
                     "of": linha.iloc[1],
                     "status": status,
                     "cliente": linha.iloc[3],
-                    "cliente_a": linha.iloc[8]
+                    "cliente_a": linha.iloc[8] # Agora virá vazio se não houver dados
                 })
 
     if resultados:
