@@ -62,15 +62,16 @@ def rodar_verificacao():
 def enviar_email_brevo(dados):
     url = "https://api.brevo.com/v3/smtp/email"
     
-    # Validação da chave antes do envio
-    if not BREVO_API_KEY:
-        print("ERRO: A BREVO_API_KEY não foi encontrada nas variáveis de ambiente.")
+    # Teste de visibilidade da chave
+    if BREVO_API_KEY:
+        print(f"Chave detectada! Inicia com: {BREVO_API_KEY[:4]}...")
+    else:
+        print("ERRO: A chave BREVO_API_KEY está VAZIA.")
         return
 
     headers = {
-        "api-key": BREVO_API_KEY,
+        "api-key": str(BREVO_API_KEY).strip(), # O .strip() remove espaços invisíveis
         "Content-Type": "application/json"
-    }
     
     linhas_tabela = "".join([
         f"<tr><td>{d['data']}</td><td>{d['of']}</td><td>{d['status']}</td><td>{d['cliente']}</td><td>{d['cliente_a']}</td></tr>"
