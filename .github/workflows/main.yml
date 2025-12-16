@@ -22,5 +22,5 @@ jobs:
 
       - name: Rodar Script
         env:
-          BREVO_API_KEY: ${{ secrets.ATRASO }} # Garanta que este nome bate com o Secret
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
         run: python main.py
