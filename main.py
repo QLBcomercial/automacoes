@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 
-# Configurações de acesso
+# Configurações
 SHEET_ID = "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
 SHEET_NAME = "Pedidos"
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
@@ -20,7 +20,7 @@ def soma_dias_uteis(data_inicial, dias):
 
 def interpretar_data(valor):
     try:
-        # Pega a última data se for um intervalo (ex: 10/12/2024 à 12/12/2024)
+        # Pega a última data se for um intervalo
         parte_final = str(valor).split('à')[-1].split('a')[-1].strip()
         return datetime.strptime(parte_final, "%d/%m/%Y")
     except:
@@ -28,12 +28,7 @@ def interpretar_data(valor):
 
 def rodar_verificacao():
     print("Iniciando leitura da planilha...")
-    try:
-        df = pd.read_csv(URL_PLANILHA)
-    except Exception as e:
-        print(f"Erro ao ler planilha: {e}")
-        return
-
+    df = pd.read_csv(URL_PLANILHA)
     hoje = datetime.now()
     limite = soma_dias_uteis(hoje, 3)
     resultados = []
@@ -41,7 +36,6 @@ def rodar_verificacao():
     for index, linha in df.iterrows():
         status = str(linha.iloc[2]).strip()
         data_texto = linha.iloc[0]
-        
         if status in ["Em Produção", "Nova"]:
             data_linha = interpretar_data(data_texto)
             if data_linha and data_linha <= limite:
@@ -54,52 +48,42 @@ def rodar_verificacao():
                 })
 
     if resultados:
-        print(f"Encontradas {len(resultados)} pendências. Enviando e-mail...")
+        print(f"Sucesso: {len(resultados)} pendências encontradas.")
         enviar_email_brevo(resultados)
     else:
-        print("Nenhuma pendência encontrada com os critérios.")
+        print("Nenhuma pendência encontrada.")
 
 def enviar_email_brevo(dados):
-    url = "https://api.brevo.com/v3/smtp/email"
-    
-    # Teste de visibilidade da chave
-    if BREVO_API_KEY:
-        print(f"Chave detectada! Inicia com: {BREVO_API_KEY[:4]}...")
-    else:
-        print("ERRO: A chave BREVO_API_KEY está VAZIA.")
+    if not BREVO_API_KEY:
+        print("ERRO CRÍTICO: BREVO_API_KEY não configurada no GitHub Secrets.")
         return
 
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "api-key": str(BREVO_API_KEY).strip(), # O .strip() remove espaços invisíveis
+        "api-key": str(BREVO_API_KEY).strip(),
         "Content-Type": "application/json"
+    }
     
-    linhas_tabela = "".join([
-        f"<tr><td>{d['data']}</td><td>{d['of']}</td><td>{d['status']}</td><td>{d['cliente']}</td><td>{d['cliente_a']}</td></tr>"
-        for d in dados
-    ])
+    # Montagem da tabela de forma mais limpa
+    corpo_tabela = ""
+    for d in dados:
+        corpo_tabela += f"<tr><td>{d['data']}</td><td>{d['of']}</td><td>{d['status']}</td><td>{d['cliente']}</td><td>{d['cliente_a']}</td></tr>"
 
     html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif;">
-        <p>Olá,</p>
-        <p>Seguem as OFs que estão em atraso ou próximas do limite:</p>
+    <html><body>
+        <h3>Relatório de OFs em Atraso</h3>
         <table border="1" style="border-collapse: collapse; width: 100%;">
-            <tr style="background-color: #f2f2f2;">
+            <tr style="background-color: #eee;">
                 <th>Data</th><th>OF</th><th>Status</th><th>Cliente</th><th>Cliente A</th>
             </tr>
-            {linhas_tabela}
+            {corpo_tabela}
         </table>
-        <p><br>— Sistema Automático Quimlab</p>
-    </body>
-    </html>
+    </body></html>
     """
 
     payload = {
         "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
-        "to": [
-            {"email": "marcos@quimlab.com.br"},
-            {"email": "quimlabcomercial@gmail.com"}
-        ],
+        "to": [{"email": "marcos@quimlab.com.br"}, {"email": "quimlabcomercial@gmail.com"}],
         "subject": "⚠️ Relatório de OFs em Atraso",
         "htmlContent": html_content
     }
@@ -107,7 +91,7 @@ def enviar_email_brevo(dados):
     response = requests.post(url, headers=headers, json=payload)
     print(f"Status Brevo: {response.status_code}")
     if response.status_code != 201:
-        print(f"Detalhes do erro: {response.text}")
+        print(f"Erro: {response.text}")
 
 if __name__ == "__main__":
     rodar_verificacao()
