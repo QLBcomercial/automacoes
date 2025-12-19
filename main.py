@@ -39,20 +39,49 @@ def normalizar_texto(texto):
     return texto
 
 
-def interpretar_data(valor):
+def obter_data_final(valor):
     if pd.isna(valor):
         return None
 
     texto = str(valor)
 
-    # Ex: 10/12/2025 à 16/12/2025
     if "à" in texto:
-        texto = texto.split("à")[-1].strip()
+        _, fim = texto.split("à")
+        texto = fim.strip()
 
     try:
         return pd.to_datetime(texto, dayfirst=True).date()
     except Exception:
         return None
+
+
+def dias_uteis_entre(hoje, data_final):
+    dias = 0
+    data = hoje
+
+    while data < data_final:
+        data += timedelta(days=1)
+        if data.weekday() < 5:  # segunda a sexta
+            dias += 1
+
+    return dias
+
+
+
+# def interpretar_data(valor):
+#     if pd.isna(valor):
+#         return None
+
+#     texto = str(valor)
+
+#     # Ex: 10/12/2025 à 16/12/2025
+#     if "à" in texto:
+#         texto = texto.split("à")[-1].strip()
+
+#     try:
+#         return pd.to_datetime(texto, dayfirst=True).date()
+#     except Exception:
+#         return None
 
 
 # =========================
@@ -130,30 +159,35 @@ def rodar_verificacao():
 
     resultados = []
 
-    for _, linha in df.iterrows():
-        data_linha = interpretar_data(linha.iloc[0])
-        if not data_linha:
-            continue
+hoje = datetime.today().date()
 
-        status_original = str(linha.iloc[2])
-        status = normalizar_texto(status_original)
+for _, linha in df.iterrows():
 
-        if not any(p in status for p in ["produc", "nova"]):
-            continue
+    data_final = obter_data_final(linha["Data"])
+    if not data_final:
+        continue
 
-        if data_linha < hoje:
-            tipo = "ATRASADO"
-        elif hoje <= data_linha <= limite:
-            tipo = "PRÓXIMO DO PRAZO"
-        else:
-            continue
+    status_original = str(linha["Status"])
+    status = normalizar_texto(status_original)
 
+    # Apenas "Em Produção"
+    if "produc" not in status:
+        continue
+
+    dias_uteis = dias_uteis_entre(hoje, data_final)
+
+    print(
+        f"OF {linha['OF']} | Data final: {data_final} | Dias úteis restantes: {dias_uteis}"
+    )
+
+    # ✅ REGRA CORRETA
+    if dias_uteis <= DIAS_ALERTA:
         resultados.append({
-            "data": data_linha.strftime("%d/%m/%Y"),
-            "of": str(linha.iloc[1]),
+            "data": data_final.strftime("%d/%m/%Y"),
+            "of": str(linha["OF"]),
             "status": status_original,
-            "cliente": str(linha.iloc[3]),
-            "setor": str(linha.iloc[5])
+            "cliente": str(linha["Cliente"]),
+            "setor": str(linha["Razão Social"])
         })
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
