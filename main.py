@@ -3,22 +3,26 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 
-# =========================
+# ======================================================
 # CONFIGURAÇÕES
-# =========================
+# ======================================================
 SHEET_ID = "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
 SHEET_NAME = "Pedidos"
-URL_PLANILHA = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
-# =========================
+URL_PLANILHA = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
+    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+)
+
+# ======================================================
 # FUNÇÕES AUXILIARES
-# =========================
+# ======================================================
 def soma_dias_uteis(data_inicial, dias):
     data = data_inicial
     adicionados = 0
     while adicionados < dias:
         data += timedelta(days=1)
-        if data.weekday() < 5:  # 0=segunda, 4=sexta
+        if data.weekday() < 5:  # segunda a sexta
             adicionados += 1
     return data
 
@@ -34,9 +38,9 @@ def interpretar_data(valor):
         return None
 
 
-def normalizar_status(status):
+def normalizar_texto(texto):
     return (
-        str(status)
+        str(texto)
         .strip()
         .lower()
         .replace("ç", "c")
@@ -48,9 +52,9 @@ def normalizar_status(status):
         .replace("ú", "u")
     )
 
-# =========================
-# ROTINA PRINCIPAL
-# =========================
+# ======================================================
+# FUNÇÃO PRINCIPAL
+# ======================================================
 def rodar_verificacao():
     print("📥 Lendo planilha...")
     df = pd.read_csv(URL_PLANILHA).fillna("")
@@ -65,19 +69,19 @@ def rodar_verificacao():
         of_valor = linha.iloc[1]
         status_original = linha.iloc[2]
         cliente = linha.iloc[3]
-        cliente_a = linha.iloc[8]
+        cliente_a = linha.iloc[5]  # Q. FINA
 
-        status = normalizar_status(status_original)
+        status = normalizar_texto(status_original)
         data_linha = interpretar_data(data_texto)
 
-        # Somente estes status entram
+        # ---- FILTRO DE STATUS (ROBUSTO) ----
         if "producao" not in status and "nova" not in status:
-    continue
+            continue
 
         if not data_linha:
             continue
 
-        # Define tipo de alerta
+        # ---- TIPO DE ALERTA ----
         if data_linha < hoje:
             tipo = "ATRASADO"
         elif hoje <= data_linha <= limite:
@@ -85,7 +89,7 @@ def rodar_verificacao():
         else:
             continue
 
-        # Limpeza da OF
+        # ---- LIMPEZA DA OF ----
         try:
             of_limpa = str(int(float(of_valor)))
         except:
@@ -100,16 +104,21 @@ def rodar_verificacao():
             "cliente_a": cliente_a
         })
 
-    print("🚨 DEBUG: quantidade de resultados =", len(resultados))
-    print("🚨 DEBUG: chamando função de envio")
-    enviar_email_brevo(resultados)
+    # ==================================================
+    # AQUI É ONDE O IF RESULTADOS FICA (IMPORTANTE)
+    # ==================================================
+    if resultados:
+        print(f"✅ {len(resultados)} pendência(s) encontrada(s). Enviando e-mail...")
+        enviar_email_brevo(resultados)
+    else:
+        print("ℹ️ Nenhuma pendência encontrada. E-mail não enviado.")
 
-
-
-# =========================
+# ======================================================
 # ENVIO DE E-MAIL (BREVO)
-# =========================
+# ======================================================
 def enviar_email_brevo(dados):
+    print("📨 Função enviar_email_brevo iniciada")
+
     api_key = os.getenv("BREVO_API_KEY", "").strip()
     if not api_key:
         print("❌ ERRO: BREVO_API_KEY não encontrada.")
@@ -122,10 +131,10 @@ def enviar_email_brevo(dados):
         "accept": "application/json"
     }
 
-    corpo_tabela = ""
+    linhas_html = ""
     for d in dados:
         cor = "#ffcccc" if d["tipo"] == "ATRASADO" else "#fff2cc"
-        corpo_tabela += f"""
+        linhas_html += f"""
         <tr style="background-color:{cor}">
             <td>{d['data']}</td>
             <td>{d['of']}</td>
@@ -140,23 +149,26 @@ def enviar_email_brevo(dados):
     <html>
     <body>
         <h3>⚠️ Relatório de OFs – Pendências</h3>
-        <table border="1" cellpadding="5" cellspacing="0" width="100%">
+        <table border="1" cellpadding="6" cellspacing="0" width="100%">
             <tr style="background-color:#eaeaea">
                 <th>Data</th>
                 <th>OF</th>
                 <th>Status</th>
                 <th>Tipo</th>
                 <th>Cliente</th>
-                <th>Cliente A</th>
+                <th>Q. Fina</th>
             </tr>
-            {corpo_tabela}
+            {linhas_html}
         </table>
     </body>
     </html>
     """
 
     payload = {
-        "sender": {"name": "Sistema Quimlab", "email": "quimlabcomercial@gmail.com"},
+        "sender": {
+            "name": "Sistema Quimlab",
+            "email": "EMAIL_VALIDADO_NO_BREVO"
+        },
         "to": [
             {"email": "marcos@quimlab.com.br"},
             {"email": "rodrigo@quimlab.com.br"}
@@ -166,22 +178,12 @@ def enviar_email_brevo(dados):
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    
-    if resultados:
-        print(f"✅ {len(resultados)} pendência(s) encontrada(s). Enviando e-mail...")
-        enviar_email_brevo(resultados)
-    else:
-        print("ℹ️ Nenhuma pendência encontrada. E-mail não enviado.")
+    print("📧 Status Brevo:", response.status_code)
+    print("📨 Resposta Brevo:", response.text)
 
-
-
-    
-    if response.status_code != 201:
-        print(response.text)
-
-
-# =========================
+# ======================================================
 # EXECUÇÃO
-# =========================
+# ======================================================
 if __name__ == "__main__":
+    print("🚀 Script iniciado")
     rodar_verificacao()
