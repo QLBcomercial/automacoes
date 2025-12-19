@@ -8,8 +8,13 @@ import unicodedata
 # =========================
 # CONFIGURAÇÕES
 # =========================
-ARQUIVO_PLANILHA = "dados.xlsx"   # ajuste se necessário
-DIAS_ALERTA = 7
+SHEET_ID = "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
+SHEET_NAME = "Pedidos"
+
+URL_PLANILHA = (
+    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
+    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
+)
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
