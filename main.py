@@ -71,6 +71,11 @@ def rodar_verificacao():
         cliente = linha.iloc[3]
         cliente_a = linha.iloc[5]  # Q. FINA
 
+        print("🔎 TOTAL DE LINHAS NA PLANILHA:", len(df))
+        print("🔎 TOTAL DE RESULTADOS:", len(resultados))
+
+        enviar_email_brevo(resultados)
+
         status = normalizar_texto(status_original)
         data_linha = interpretar_data(data_texto)
 
