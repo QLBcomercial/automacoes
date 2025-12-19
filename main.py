@@ -141,6 +141,11 @@ def rodar_verificacao():
 
     print("🌐 Lendo planilha Google Sheets (CSV)")
     df = pd.read_csv(URL_PLANILHA)
+   
+    print("📌 COLUNAS ENCONTRADAS NO CSV:")
+    for col in df.columns:
+        print(f"- [{col}]")
+
 
     print("📥 Linhas carregadas:", len(df))
 
@@ -148,11 +153,22 @@ def rodar_verificacao():
 
     for _, linha in df.iterrows():
 
-        data_final = obter_data_final(linha["Data"])
+        data_final = obter_data_final(
+            linha.get("Data", linha.get("Data ", ""))
+        )
+        print(
+            f"DEBUG | OF={linha.get('OF')} | "
+            f"Data='{linha.get('Data')}' | "
+            f"Status='{linha.get('Status')}'"
+        )
+
         if not data_final:
             continue
 
-        status_original = str(linha["Status"])
+        status_original = str(
+            linha.get("Status", linha.get("Status ", ""))
+        ).strip()
+
         status = normalizar_texto(status_original)
 
         # Apenas "Em Produção"
