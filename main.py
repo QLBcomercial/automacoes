@@ -3,6 +3,7 @@ import requests
 import os
 from datetime import datetime, timedelta
 import unicodedata
+import re
 
 
 # =========================
@@ -43,18 +44,16 @@ def obter_data_final(valor):
     if pd.isna(valor):
         return None
 
-    texto = str(valor).lower().strip()
+    texto = str(valor)
 
-    # Normaliza separadores possíveis
-    for sep in ["à", " a ", " até ", "-", "–"]:
-        if sep in texto:
-            texto = texto.split(sep)[-1].strip()
-            break
+    # encontra TODAS as datas no texto
+    datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", texto)
 
-    try:
-        return pd.to_datetime(texto, dayfirst=True).date()
-    except Exception:
+    if not datas:
         return None
+
+    # a data final é sempre a última
+    return pd.to_datetime(datas[-1], dayfirst=True).date()
 
 def dias_uteis_entre(hoje, data_final):
     dias = 0
