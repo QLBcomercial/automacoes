@@ -139,7 +139,7 @@ def rodar_verificacao():
     hoje = datetime.today().date()
 
     print("🌐 Lendo planilha Google Sheets (CSV)")
-    df = pd.read_csv(URL_PLANILHA)
+    df = pd.read_csv(URL_PLANILHA, dtype=str)
    
     print("📌 COLUNAS ENCONTRADAS NO CSV:")
     for col in df.columns:
