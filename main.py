@@ -14,12 +14,12 @@ URL_PLANILHA = (
     "/gviz/tq?tqx=out:csv&sheet=Pedidos"
 )
 
-DIAS_ALERTA = 7
+DIAS_ALERTA = 3
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 EMAIL_REMETENTE = {
     "name": "Quimlab",
-    "email": "quimlabcomercial@gmail.com"  # validado na Brevo
+    "email": "quimlabcomercial@gmail.com"
 }
 
 EMAIL_DESTINATARIO = {
@@ -61,27 +61,10 @@ def dias_uteis_entre(hoje, data_final):
 
     while data < data_final:
         data += timedelta(days=1)
-        if data.weekday() < 5:  # segunda a sexta
+        if data.weekday() < 5:
             dias += 1
 
     return dias
-
-
-
-# def interpretar_data(valor):
-#     if pd.isna(valor):
-#         return None
-
-#     texto = str(valor)
-
-#     # Ex: 10/12/2025 à 16/12/2025
-#     if "à" in texto:
-#         texto = texto.split("à")[-1].strip()
-
-#     try:
-#         return pd.to_datetime(texto, dayfirst=True).date()
-#     except Exception:
-#         return None
 
 
 # =========================
@@ -105,10 +88,10 @@ def enviar_email_brevo(resultados):
     html = f"""
     <html>
     <body>
-        <p>Ordens de Fabricação com atenção:</p>
+        <p>Ordens de Fabricação com prazo crítico:</p>
         <table border="1" cellpadding="5" cellspacing="0">
             <tr>
-                <th>Data</th>
+                <th>Data Final</th>
                 <th>OF</th>
                 <th>Status</th>
                 <th>Cliente</th>
@@ -123,7 +106,7 @@ def enviar_email_brevo(resultados):
     payload = {
         "sender": EMAIL_REMETENTE,
         "to": [EMAIL_DESTINATARIO],
-        "subject": "⚠️ Alerta de Ordens de Fabricação",
+        "subject": "⚠️ Alerta – Ordens de Fabricação (≤ 3 dias úteis)",
         "htmlContent": html
     }
 
@@ -149,8 +132,11 @@ def enviar_email_brevo(resultados):
 def rodar_verificacao():
     print("🚀 Script iniciado")
 
+    if not BREVO_API_KEY:
+        print("❌ ERRO: BREVO_API_KEY não encontrada")
+        return
+
     hoje = datetime.today().date()
-    limite = hoje + timedelta(days=DIAS_ALERTA)
 
     print("🌐 Lendo planilha Google Sheets (CSV)")
     df = pd.read_csv(URL_PLANILHA)
@@ -159,40 +145,37 @@ def rodar_verificacao():
 
     resultados = []
 
-hoje = datetime.today().date()
+    for _, linha in df.iterrows():
 
-for _, linha in df.iterrows():
+        data_final = obter_data_final(linha["Data"])
+        if not data_final:
+            continue
 
-    data_final = obter_data_final(linha["Data"])
-    if not data_final:
-        continue
+        status_original = str(linha["Status"])
+        status = normalizar_texto(status_original)
 
-    status_original = str(linha["Status"])
-    status = normalizar_texto(status_original)
+        if "produc" not in status:
+            continue
 
-    # Apenas "Em Produção"
-    if "produc" not in status:
-        continue
+        dias_uteis = dias_uteis_entre(hoje, data_final)
 
-    dias_uteis = dias_uteis_entre(hoje, data_final)
+        print(
+            f"OF {linha['OF']} | Data final: {data_final} | Dias úteis restantes: {dias_uteis}"
+        )
 
-    print(
-        f"OF {linha['OF']} | Data final: {data_final} | Dias úteis restantes: {dias_uteis}"
-    )
-
-    # ✅ REGRA CORRETA
-    if dias_uteis <= DIAS_ALERTA:
-        resultados.append({
-            "data": data_final.strftime("%d/%m/%Y"),
-            "of": str(linha["OF"]),
-            "status": status_original,
-            "cliente": str(linha["Cliente"]),
-            "setor": str(linha["Razão Social"])
-        })
+        # ✅ REGRA DEFINITIVA
+        if dias_uteis <= DIAS_ALERTA:
+            resultados.append({
+                "data": data_final.strftime("%d/%m/%Y"),
+                "of": str(linha["OF"]),
+                "status": status_original,
+                "cliente": str(linha["Cliente"]),
+                "setor": str(linha["Razão Social"])
+            })
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
 
-    if len(resultados) > 0:
+    if resultados:
         enviar_email_brevo(resultados)
     else:
         print("ℹ️ Nenhuma correspondência encontrada. E-mail não enviado.")
