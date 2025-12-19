@@ -8,14 +8,9 @@ import unicodedata
 # =========================
 # CONFIGURAÇÕES
 # =========================
-SHEET_ID = "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
-SHEET_NAME = "Pedidos"
-
-URL_PLANILHA = (
-    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-)
+URL_PLANILHA = "https://SEU_LINK_AQUI.xlsx"  # ← use o link real da planilha
 DIAS_ALERTA = 7
+
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 EMAIL_REMETENTE = {
@@ -128,7 +123,10 @@ def rodar_verificacao():
     hoje = datetime.today().date()
     limite = hoje + timedelta(days=DIAS_ALERTA)
 
-    df = pd.read_excel(ARQUIVO_PLANILHA)
+    print("🌐 Lendo planilha da URL:")
+    print(URL_PLANILHA)
+
+    df = pd.read_excel(URL_PLANILHA)
 
     print("📥 Planilha carregada")
     print("🔎 Total de linhas:", len(df))
@@ -164,7 +162,7 @@ def rodar_verificacao():
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
 
-    # ✅ CONDIÇÃO EXPLÍCITA (SEM AMBIGUIDADE)
+    # ✅ ENVIO CONDICIONAL EXPLÍCITO
     if len(resultados) > 0:
         print("✅ Correspondências encontradas. Enviando e-mail...")
         enviar_email_brevo(resultados)
