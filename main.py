@@ -45,6 +45,9 @@ def rodar_verificacao():
         
         if status in ["Em Produção", "Nova"]:
             data_linha = interpretar_data(data_texto)
+
+            print(f"DATA TEXTO: {data_texto} | DATA INTERPRETADA: {data_linha}")
+            
             if data_linha and data_linha <= limite:
                 # Ajuste da OF: Remove .0 convertendo para inteiro
                 of_valor = linha.iloc[1]
