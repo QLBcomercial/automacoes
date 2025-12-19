@@ -1,6 +1,7 @@
 import os
 import requests
 import pandas as pd
+import re
 from datetime import datetime, timedelta
 
 # Configurações
@@ -19,11 +20,15 @@ def soma_dias_uteis(data_inicial, dias):
     return data
 
 def interpretar_data(valor):
-    try:
-        parte_final = str(valor).split('à')[-1].split('a')[-1].strip()
-        return datetime.strptime(parte_final, "%d/%m/%Y")
-    except:
+    if not valor:
         return None
+
+    datas = re.findall(r"\d{1,2}/\d{1,2}/\d{4}", str(valor))
+    if not datas:
+        return None
+
+    # Sempre pega a ÚLTIMA data do texto
+    return datetime.strptime(datas[-1], "%d/%m/%Y")
 
 def rodar_verificacao():
     print("Iniciando leitura da planilha...")
