@@ -148,31 +148,38 @@ def rodar_verificacao():
 
     for _, linha in df.iterrows():
 
-       data_final = obter_data_final(linha["Data"])
+        data_final = obter_data_final(linha["Data"])
         if not data_final:
             continue
 
         status_original = str(linha["Status"])
         status = normalizar_texto(status_original)
 
+        # Apenas "Em Produção"
         if "produc" not in status:
             continue
 
-        dias_uteis = dias_uteis_entre(hoje, data_final)
+        # ATRASADO
+        if hoje > data_final:
+            dias_uteis = 0
+            tipo = "ATRASADO"
+        else:
+            dias_uteis = dias_uteis_entre(hoje, data_final)
+            if dias_uteis > DIAS_ALERTA:
+                continue
+            tipo = "PRÓXIMO DO PRAZO"
 
         print(
-            f"OF {linha['OF']} | Data final: {data_final} | Dias úteis restantes: {dias_uteis}"
+            f"OF {linha['OF']} | {tipo} | Data final: {data_final} | Dias úteis: {dias_uteis}"
         )
 
-        # ✅ REGRA DEFINITIVA
-        if dias_uteis <= DIAS_ALERTA:
-            resultados.append({
-                "data": data_final.strftime("%d/%m/%Y"),
-                "of": str(linha["OF"]),
-                "status": status_original,
-                "cliente": str(linha["Cliente"]),
-                "setor": str(linha["Razão Social"])
-            })
+        resultados.append({
+            "data": data_final.strftime("%d/%m/%Y"),
+            "of": str(linha["OF"]),
+            "status": status_original,
+            "cliente": str(linha["Cliente"]),
+            "setor": str(linha["Razão Social"])
+        })
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
 
