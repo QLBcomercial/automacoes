@@ -71,8 +71,8 @@ def rodar_verificacao():
         data_linha = interpretar_data(data_texto)
 
         # Somente estes status entram
-        if status not in ["em producao", "nova"]:
-            continue
+        if "producao" not in status and "nova" not in status:
+    continue
 
         if not data_linha:
             continue
@@ -167,9 +167,12 @@ def enviar_email_brevo(dados):
 
     response = requests.post(url, headers=headers, json=payload)
     
-    print("📧 Status Brevo:", response.status_code)
-    print("📨 Resposta Brevo:")
-    print(response.text)
+    if resultados:
+        print(f"✅ {len(resultados)} pendência(s) encontrada(s). Enviando e-mail...")
+        enviar_email_brevo(resultados)
+    else:
+        print("ℹ️ Nenhuma pendência encontrada. E-mail não enviado.")
+
 
 
     
