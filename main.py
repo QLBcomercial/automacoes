@@ -8,7 +8,7 @@ import unicodedata
 # =========================
 # CONFIGURAÇÕES
 # =========================
-URL_PLANILHA = "https://SEU_LINK_AQUI.xlsx"  # ← use o link real da planilha
+URL_PLANILHA = "https://docs.google.com/spreadsheets/d/1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I/edit?usp=drive_web&ouid=111472244753926129156"  # ← use o link real da planilha
 DIAS_ALERTA = 7
 
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
