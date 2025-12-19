@@ -15,7 +15,7 @@ URL_PLANILHA = (
     f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
     f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 )
-
+DIAS_ALERTA = 7
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 EMAIL_REMETENTE = {
