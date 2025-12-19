@@ -43,17 +43,18 @@ def obter_data_final(valor):
     if pd.isna(valor):
         return None
 
-    texto = str(valor)
+    texto = str(valor).lower().strip()
 
-    if "à" in texto:
-        _, fim = texto.split("à")
-        texto = fim.strip()
+    # Normaliza separadores possíveis
+    for sep in ["à", " a ", " até ", "-", "–"]:
+        if sep in texto:
+            texto = texto.split(sep)[-1].strip()
+            break
 
     try:
         return pd.to_datetime(texto, dayfirst=True).date()
     except Exception:
         return None
-
 
 def dias_uteis_entre(hoje, data_final):
     dias = 0
