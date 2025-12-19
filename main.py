@@ -148,7 +148,7 @@ def rodar_verificacao():
 
     for _, linha in df.iterrows():
 
-        data_final = obter_data_final(linha["Data"])
+       data_final = obter_data_final(linha["Data"])
         if not data_final:
             continue
 
