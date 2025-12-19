@@ -15,12 +15,12 @@ BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 EMAIL_REMETENTE = {
     "name": "Quimlab",
-    "email": "noreply@seudominio.com.br"  # precisa estar VALIDADO na Brevo
+    "email": "quimlabcomercial@gmail.com"  # precisa estar VALIDADO na Brevo
 }
 
 EMAIL_DESTINATARIO = {
-    "email": "destinatario@seudominio.com.br",
-    "name": "Destinatário"
+    "email": "marcos@quimlab.com.br",
+    "name": "Marcos"
 }
 
 
