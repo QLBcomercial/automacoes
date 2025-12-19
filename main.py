@@ -100,11 +100,10 @@ def rodar_verificacao():
             "cliente_a": cliente_a
         })
 
-    if resultados:
-        print(f"✅ {len(resultados)} pendências encontradas.")
-        enviar_email_brevo(resultados)
-    else:
-        print("ℹ️ Nenhuma pendência encontrada.")
+    print("🚨 DEBUG: quantidade de resultados =", len(resultados))
+    print("🚨 DEBUG: chamando função de envio")
+    enviar_email_brevo(resultados)
+
 
 
 # =========================
@@ -167,7 +166,13 @@ def enviar_email_brevo(dados):
     }
 
     response = requests.post(url, headers=headers, json=payload)
-    print(f"📧 Status Brevo: {response.status_code}")
+    
+    print("📧 Status Brevo:", response.status_code)
+    print("📨 Resposta Brevo:")
+    print(response.text)
+
+
+    
     if response.status_code != 201:
         print(response.text)
 
