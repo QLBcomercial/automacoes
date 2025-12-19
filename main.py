@@ -8,14 +8,18 @@ import unicodedata
 # =========================
 # CONFIGURAÇÕES
 # =========================
-URL_PLANILHA = "https://docs.google.com/spreadsheets/d/1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I/edit?usp=drive_web&ouid=111472244753926129156"  # ← use o link real da planilha
-DIAS_ALERTA = 7
+URL_PLANILHA = (
+    "https://docs.google.com/spreadsheets/d/"
+    "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
+    "/gviz/tq?tqx=out:csv&sheet=Pedidos"
+)
 
+DIAS_ALERTA = 7
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 EMAIL_REMETENTE = {
     "name": "Quimlab",
-    "email": "quimlabcomercial@gmail.com"  # precisa estar VALIDADO na Brevo
+    "email": "quimlabcomercial@gmail.com"  # validado na Brevo
 }
 
 EMAIL_DESTINATARIO = {
@@ -41,9 +45,9 @@ def interpretar_data(valor):
 
     texto = str(valor)
 
-    # Caso venha no formato: 10/12/2025 à 16/12/2025
+    # Ex: 10/12/2025 à 16/12/2025
     if "à" in texto:
-        texto = texto.split("à")[0].strip()
+        texto = texto.split("à")[-1].strip()
 
     try:
         return pd.to_datetime(texto, dayfirst=True).date()
@@ -55,7 +59,7 @@ def interpretar_data(valor):
 # ENVIO DE EMAIL (BREVO)
 # =========================
 def enviar_email_brevo(resultados):
-    print("📨 Função enviar_email_brevo chamada")
+    print("📨 Enviando e-mail via Brevo")
 
     linhas_html = ""
     for r in resultados:
@@ -72,7 +76,7 @@ def enviar_email_brevo(resultados):
     html = f"""
     <html>
     <body>
-        <p>As seguintes Ordens de Fabricação requerem atenção:</p>
+        <p>Ordens de Fabricação com atenção:</p>
         <table border="1" cellpadding="5" cellspacing="0">
             <tr>
                 <th>Data</th>
@@ -95,9 +99,9 @@ def enviar_email_brevo(resultados):
     }
 
     headers = {
-        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
         "content-type": "application/json",
-        "api-key": BREVO_API_KEY
+        "accept": "application/json"
     }
 
     response = requests.post(
@@ -116,24 +120,17 @@ def enviar_email_brevo(resultados):
 def rodar_verificacao():
     print("🚀 Script iniciado")
 
-    if not BREVO_API_KEY:
-        print("❌ ERRO: BREVO_API_KEY não encontrada")
-        return
-
     hoje = datetime.today().date()
     limite = hoje + timedelta(days=DIAS_ALERTA)
 
-    print("🌐 Lendo planilha da URL:")
-    print(URL_PLANILHA)
+    print("🌐 Lendo planilha Google Sheets (CSV)")
+    df = pd.read_csv(URL_PLANILHA)
 
-    df = pd.read_excel(URL_PLANILHA)
-
-    print("📥 Planilha carregada")
-    print("🔎 Total de linhas:", len(df))
+    print("📥 Linhas carregadas:", len(df))
 
     resultados = []
 
-    for i, linha in df.iterrows():
+    for _, linha in df.iterrows():
         data_linha = interpretar_data(linha.iloc[0])
         if not data_linha:
             continue
@@ -141,7 +138,6 @@ def rodar_verificacao():
         status_original = str(linha.iloc[2])
         status = normalizar_texto(status_original)
 
-        # Filtro de status (flexível)
         if not any(p in status for p in ["produc", "nova"]):
             continue
 
@@ -162,12 +158,10 @@ def rodar_verificacao():
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
 
-    # ✅ ENVIO CONDICIONAL EXPLÍCITO
     if len(resultados) > 0:
-        print("✅ Correspondências encontradas. Enviando e-mail...")
         enviar_email_brevo(resultados)
     else:
-        print("ℹ️ Nenhuma correspondência válida encontrada. E-mail não enviado.")
+        print("ℹ️ Nenhuma correspondência encontrada. E-mail não enviado.")
 
 
 # =========================
