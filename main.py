@@ -1,167 +1,85 @@
-import os
-import requests
 import pandas as pd
+import requests
+import os
 from datetime import datetime, timedelta
+import unicodedata
 
-# ======================================================
+
+# =========================
 # CONFIGURAÇÕES
-# ======================================================
-SHEET_ID = "1A0beFGh1PL-t7PTuZvRRuuk-nDQeWZxsMPVQ1I4QM0I"
-SHEET_NAME = "Pedidos"
+# =========================
+ARQUIVO_PLANILHA = "dados.xlsx"   # ajuste se necessário
+DIAS_ALERTA = 7
 
-URL_PLANILHA = (
-    f"https://docs.google.com/spreadsheets/d/{SHEET_ID}"
-    f"/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
-)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
-# ======================================================
+EMAIL_REMETENTE = {
+    "name": "Quimlab",
+    "email": "noreply@seudominio.com.br"  # precisa estar VALIDADO na Brevo
+}
+
+EMAIL_DESTINATARIO = {
+    "email": "destinatario@seudominio.com.br",
+    "name": "Destinatário"
+}
+
+
+# =========================
 # FUNÇÕES AUXILIARES
-# ======================================================
-def soma_dias_uteis(data_inicial, dias):
-    data = data_inicial
-    adicionados = 0
-    while adicionados < dias:
-        data += timedelta(days=1)
-        if data.weekday() < 5:  # segunda a sexta
-            adicionados += 1
-    return data
+# =========================
+def normalizar_texto(texto):
+    if pd.isna(texto):
+        return ""
+    texto = str(texto).lower().strip()
+    texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+    return texto
 
 
 def interpretar_data(valor):
+    if pd.isna(valor):
+        return None
+
+    texto = str(valor)
+
+    # Caso venha no formato: 10/12/2025 à 16/12/2025
+    if "à" in texto:
+        texto = texto.split("à")[0].strip()
+
     try:
-        texto = str(valor)
-        if "à" in texto:
-            texto = texto.split("à")[-1]
-        texto = texto.strip()
-        return datetime.strptime(texto, "%d/%m/%Y")
-    except:
+        return pd.to_datetime(texto, dayfirst=True).date()
+    except Exception:
         return None
 
 
-def normalizar_texto(texto):
-    return (
-        str(texto)
-        .strip()
-        .lower()
-        .replace("ç", "c")
-        .replace("ã", "a")
-        .replace("á", "a")
-        .replace("é", "e")
-        .replace("í", "i")
-        .replace("ó", "o")
-        .replace("ú", "u")
-    )
-
-# ======================================================
-# FUNÇÃO PRINCIPAL
-# ======================================================
-def rodar_verificacao():
-    print("📥 Lendo planilha...")
-    df = pd.read_csv(URL_PLANILHA).fillna("")
-
-    hoje = datetime.now()
-    limite = soma_dias_uteis(hoje, 3)
-
-    resultados = []
-
-    for _, linha in df.iterrows():
-        data_texto = linha.iloc[0]
-        of_valor = linha.iloc[1]
-        status_original = linha.iloc[2]
-        cliente = linha.iloc[3]
-        cliente_a = linha.iloc[5]  # Q. FINA
-
-        print("🔎 TOTAL DE LINHAS NA PLANILHA:", len(df))
-        print("🔎 TOTAL DE RESULTADOS:", len(resultados))
-
-        enviar_email_brevo(resultados)
-
-        status = normalizar_texto(status_original)
-        data_linha = interpretar_data(data_texto)
-
-        # ---- FILTRO DE STATUS (ROBUSTO) ----
-        if "producao" not in status and "nova" not in status:
-            continue
-
-        if not data_linha:
-            continue
-
-        # ---- TIPO DE ALERTA ----
-        if data_linha < hoje:
-            tipo = "ATRASADO"
-        elif hoje <= data_linha <= limite:
-            tipo = "PRÓXIMO DO VENCIMENTO"
-        else:
-            continue
-
-        # ---- LIMPEZA DA OF ----
-        try:
-            of_limpa = str(int(float(of_valor)))
-        except:
-            of_limpa = str(of_valor)
-
-        resultados.append({
-            "data": data_linha.strftime("%d/%m/%Y"),
-            "of": of_limpa,
-            "status": status_original,
-            "tipo": tipo,
-            "cliente": cliente,
-            "cliente_a": cliente_a
-        })
-
-    # ==================================================
-    # AQUI É ONDE O IF RESULTADOS FICA (IMPORTANTE)
-    # ==================================================
-    if resultados:
-        print(f"✅ {len(resultados)} pendência(s) encontrada(s). Enviando e-mail...")
-        enviar_email_brevo(resultados)
-    else:
-        print("ℹ️ Nenhuma pendência encontrada. E-mail não enviado.")
-
-# ======================================================
-# ENVIO DE E-MAIL (BREVO)
-# ======================================================
-def enviar_email_brevo(dados):
-    print("📨 Função enviar_email_brevo iniciada")
-
-    api_key = os.getenv("BREVO_API_KEY", "").strip()
-    if not api_key:
-        print("❌ ERRO: BREVO_API_KEY não encontrada.")
-        return
-
-    url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "api-key": api_key,
-        "Content-Type": "application/json",
-        "accept": "application/json"
-    }
+# =========================
+# ENVIO DE EMAIL (BREVO)
+# =========================
+def enviar_email_brevo(resultados):
+    print("📨 Função enviar_email_brevo chamada")
 
     linhas_html = ""
-    for d in dados:
-        cor = "#ffcccc" if d["tipo"] == "ATRASADO" else "#fff2cc"
+    for r in resultados:
         linhas_html += f"""
-        <tr style="background-color:{cor}">
-            <td>{d['data']}</td>
-            <td>{d['of']}</td>
-            <td>{d['status']}</td>
-            <td>{d['tipo']}</td>
-            <td>{d['cliente']}</td>
-            <td>{d['cliente_a']}</td>
+        <tr>
+            <td>{r['data']}</td>
+            <td>{r['of']}</td>
+            <td>{r['status']}</td>
+            <td>{r['cliente']}</td>
+            <td>{r['setor']}</td>
         </tr>
         """
 
-    html_content = f"""
+    html = f"""
     <html>
     <body>
-        <h3>⚠️ Relatório de OFs – Pendências</h3>
-        <table border="1" cellpadding="6" cellspacing="0" width="100%">
-            <tr style="background-color:#eaeaea">
+        <p>As seguintes Ordens de Fabricação requerem atenção:</p>
+        <table border="1" cellpadding="5" cellspacing="0">
+            <tr>
                 <th>Data</th>
                 <th>OF</th>
                 <th>Status</th>
-                <th>Tipo</th>
                 <th>Cliente</th>
-                <th>Q. Fina</th>
+                <th>Setor</th>
             </tr>
             {linhas_html}
         </table>
@@ -170,25 +88,87 @@ def enviar_email_brevo(dados):
     """
 
     payload = {
-        "sender": {
-            "name": "Sistema Quimlab",
-            "email": "EMAIL_VALIDADO_NO_BREVO"
-        },
-        "to": [
-            {"email": "marcos@quimlab.com.br"},
-            {"email": "rodrigo@quimlab.com.br"}
-        ],
-        "subject": "⚠️ Relatório de OFs – Atrasos e Alertas",
-        "htmlContent": html_content
+        "sender": EMAIL_REMETENTE,
+        "to": [EMAIL_DESTINATARIO],
+        "subject": "⚠️ Alerta de Ordens de Fabricação",
+        "htmlContent": html
     }
 
-    response = requests.post(url, headers=headers, json=payload)
-    print("📧 Status Brevo:", response.status_code)
-    print("📨 Resposta Brevo:", response.text)
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": BREVO_API_KEY
+    }
 
-# ======================================================
-# EXECUÇÃO
-# ======================================================
-if __name__ == "__main__":
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        json=payload,
+        headers=headers
+    )
+
+    print("📧 Status Brevo:", response.status_code)
+    print("📧 Resposta Brevo:", response.text)
+
+
+# =========================
+# FUNÇÃO PRINCIPAL
+# =========================
+def rodar_verificacao():
     print("🚀 Script iniciado")
+
+    if not BREVO_API_KEY:
+        print("❌ ERRO: BREVO_API_KEY não encontrada")
+        return
+
+    hoje = datetime.today().date()
+    limite = hoje + timedelta(days=DIAS_ALERTA)
+
+    df = pd.read_excel(ARQUIVO_PLANILHA)
+
+    print("📥 Planilha carregada")
+    print("🔎 Total de linhas:", len(df))
+
+    resultados = []
+
+    for i, linha in df.iterrows():
+        data_linha = interpretar_data(linha.iloc[0])
+        if not data_linha:
+            continue
+
+        status_original = str(linha.iloc[2])
+        status = normalizar_texto(status_original)
+
+        # Filtro de status (flexível)
+        if not any(p in status for p in ["produc", "nova"]):
+            continue
+
+        if data_linha < hoje:
+            tipo = "ATRASADO"
+        elif hoje <= data_linha <= limite:
+            tipo = "PRÓXIMO DO PRAZO"
+        else:
+            continue
+
+        resultados.append({
+            "data": data_linha.strftime("%d/%m/%Y"),
+            "of": str(linha.iloc[1]),
+            "status": status_original,
+            "cliente": str(linha.iloc[3]),
+            "setor": str(linha.iloc[5])
+        })
+
+    print("🔎 TOTAL DE RESULTADOS:", len(resultados))
+
+    # ✅ CONDIÇÃO EXPLÍCITA (SEM AMBIGUIDADE)
+    if len(resultados) > 0:
+        print("✅ Correspondências encontradas. Enviando e-mail...")
+        enviar_email_brevo(resultados)
+    else:
+        print("ℹ️ Nenhuma correspondência válida encontrada. E-mail não enviado.")
+
+
+# =========================
+# EXECUÇÃO
+# =========================
+if __name__ == "__main__":
     rodar_verificacao()
