@@ -2,8 +2,8 @@ name: Relatorio Diario OFs
 
 on:
   schedule:
-    # 21:00 UTC corresponde às 18:00 no Horário de Brasília
-    - cron: '0 21 * * 1-5' 
+    # 09:00 UTC corresponde às 06:00 no Horário de Brasília (UTC-3)
+    - cron: '0 9 * * 1-5'
   workflow_dispatch:
 
 jobs:
