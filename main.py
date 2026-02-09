@@ -82,6 +82,7 @@ def enviar_email_brevo(resultados):
             <td>{r['status']}</td>
             <td>{r['cliente']}</td>
             <td>{r['setor']}</td>
+            <td>{r['cliente a']}</td>
         </tr>
         """
 
@@ -96,6 +97,7 @@ def enviar_email_brevo(resultados):
                 <th>Status</th>
                 <th>Cliente</th>
                 <th>Setor</th>
+                <th>Cliente A</th>
             </tr>
             {linhas_html}
         </table>
@@ -194,6 +196,7 @@ def rodar_verificacao():
             "status": status_original,
             "cliente": str(linha["Cliente"]),
             "setor": str(linha["Razão Social"])
+            "cliente": str(linha["Cliente A"])
         })
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
