@@ -196,7 +196,7 @@ def rodar_verificacao():
             "status": status_original,
             "cliente": str(linha["Cliente"]),
             "setor": str(linha["Razão Social"]),
-            "cliente a": str(linha["Cliente A"])
+            "cliente a": "" if pd.isna(linha["Cliente A"]) else str(linha["Cliente A"])
         })
 
     print("🔎 TOTAL DE RESULTADOS:", len(resultados))
