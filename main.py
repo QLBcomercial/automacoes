@@ -195,7 +195,7 @@ def rodar_verificacao():
             "of": str(linha["OF"]),
             "status": status_original,
             "cliente": str(linha["Cliente"]),
-            "setor": str(linha["Razão Social"])
+            "setor": str(linha["Razão Social"]),
             "cliente a": str(linha["Cliente A"])
         })
 
